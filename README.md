@@ -20,6 +20,8 @@ self_nest/
 │   │   └── route.decorator.ts  - 라우트 데코레이터
 │   ├── adapters/
 │   │   └── http-adapter.ts     - HTTP 어댑터
+│   ├── constants/
+│   │   └── shared.constants.ts - 공통 상수
 │   └── utils/
 │       └── shared.utils.ts     - 유틸리티 함수
 ├── example/
