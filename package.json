@@ -1,0 +1,23 @@
+{
+  "name": "self_nest",
+  "version": "1.0.0",
+  "description": "make nest like application to understand nestjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MAHT1990/self_nest.git"
+  },
+  "keywords": [
+    "nestjs",
+    "study"
+  ],
+  "author": "MAHT1990",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MAHT1990/self_nest/issues"
+  },
+  "homepage": "https://github.com/MAHT1990/self_nest#readme"
+}
