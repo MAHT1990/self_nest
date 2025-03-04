@@ -31,6 +31,50 @@ self_nest/
 │   └── main.ts                 - 애플리케이션 시작점
 ```
 
+# Mermaid Diagram
+```mermaid
+flowchart TD
+    subgraph "애플리케이션 생성 흐름"
+        Main["main.ts\n(bootstrap)"] --> NF["NestFactory.create()"]
+        NF --> Container["Container 생성"]
+        NF --> MS["ModuleScanner.scan()"]
+        NF --> Injector["Injector.createInstances()"]
+        NF --> App["Application 생성"]
+        App --> RegisterRoutes["라우트 등록"]
+        App --> Listen["서버 시작"]
+    end
+    
+    subgraph "IoC 컨테이너"
+        Container --> |저장| ModuleMap["모듈 맵"]
+        Container --> |저장| InstanceMap["인스턴스 맵"]
+        Container --> GetProviders["getProviders()"]
+        Container --> GetControllers["getControllers()"]
+        Container --> GetInstance["getInstance()"]
+    end
+    
+    subgraph "예외 처리 메커니즘"
+        EZ["ExceptionsZone"] --> Run["run()"]
+        EZ --> AsyncRun["asyncRun()"]
+        CreateProxy["createProxy()"] --> CreateExceptionProxy["createExceptionProxy()"]
+        CreateExceptionProxy --> CreateExceptionZone["createExceptionZone()"]
+        CreateExceptionZone --> EZ
+    end
+    
+    subgraph "데코레이터 & 메타데이터"
+        Module["@Module()"] --> |메타데이터 저장| ModuleMeta["MODULE 메타데이터"]
+        Controller["@Controller()"] --> |메타데이터 저장| ControllerMeta["CONTROLLER 메타데이터"]
+        Injectable["@Injectable()"] --> |메타데이터 저장| InjectableMeta["INJECTABLE 메타데이터"]
+        Route["@Get(), @Post()..."] --> |메타데이터 저장| RouteMeta["ROUTE & METHOD 메타데이터"]
+    end
+    
+    subgraph "HTTP 처리"
+        ExpressAdapter["ExpressAdapter"] --> Listen
+        RegisterRoutes --> |등록| Routes["라우트 맵"]
+        Routes --> |요청 처리| Handler["래핑된 핸들러"]
+        Handler --> |실행| ControllerMethod["컨트롤러 메소드"]
+    end
+```
+
 # 주요 패턴
 - 모듈화
 - 의존성 주입

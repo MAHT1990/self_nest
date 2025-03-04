@@ -12,4 +12,14 @@ export const isFunction = (obj: any): obj is Function => {
 }
 
 
+/**
+ * 예외 다시 던지기
+ * 
+ * @param error - 예외 객체
+ * @returns 예외 객체
+ */
+export const rethrow = (error: Error): never => {
+    throw error;
+}
+
 
