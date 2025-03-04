@@ -3,7 +3,7 @@ nest 코드를 이해하고자 핵심 원리를 기반으로 한 self nest 만�
 
 # Directory Structure
 ```
-mini-nest/
+self_nest/
 ├── src/
 │   ├── core/
 │   │   ├── interfaces.ts       - 핵심 인터페이스
