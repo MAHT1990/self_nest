@@ -19,7 +19,11 @@ enum RequestMethod {
  */
 function createMappingDecorator(method: RequestMethod) {
     return (path: string = "") => {
-        return (target: any, key: string | Symbol, descriptor: PropertyDescriptor) => {
+        return (
+            target: any,
+            key: string | Symbol,
+            descriptor: PropertyDescriptor
+        ) => {
             Reflect.defineMetadata(METADATA_KEY.METHOD, method, descriptor.value);
             Reflect.defineMetadata(METADATA_KEY.ROUTE, path, descriptor.value);
             return descriptor;

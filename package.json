@@ -22,5 +22,8 @@
   "homepage": "https://github.com/MAHT1990/self_nest#readme",
   "dependencies": {
     "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9"
   }
 }
