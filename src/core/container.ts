@@ -32,7 +32,7 @@ export class Container {
         return metadata.controllers || [];
     }
 
-    getInstance<t>(type: Type<T>): T {
+    getInstance<T>(type: Type<T>): T {
         if (this.instanceMap.has(type)) {
             return this.instanceMap.get(type);
         }
@@ -44,7 +44,7 @@ export class Container {
 
     /* 직접 인스턴스 설정 */
     setInstance<T>(type: Type<T>, instance: T): void {
-        this.instaceMap.set(type, instance);
+        this.instanceMap.set(type, instance);
     }
 
     /* Http Adapter 설정 */
