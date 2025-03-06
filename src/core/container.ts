@@ -80,4 +80,9 @@ export class Container {
         const builtInTypes = [String, Number, Boolean, Array, Object, Function];
         return builtInTypes.includes(type);
     }
+
+    /* @Inject() 데코레이터 처리 */
+    private injectProperties(instance: any, type: Type<any>): void {
+        
+    }
 }
