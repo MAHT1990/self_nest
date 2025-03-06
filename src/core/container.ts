@@ -75,4 +75,9 @@ export class Container {
     getHttpAdapter(): any {
         return this.httpAdapter;
     }
+
+    private isBuiltInType(type: any): boolean {
+        const builtInTypes = [String, Number, Boolean, Array, Object, Function];
+        return builtInTypes.includes(type);
+    }
 }

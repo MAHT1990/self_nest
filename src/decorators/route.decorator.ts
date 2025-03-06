@@ -32,10 +32,20 @@ function createMappingDecorator(method: RequestMethod) {
 }
 
 
+/* Get 메서드 데코레이터 */ 
 export const Get = createMappingDecorator(RequestMethod.GET);
+
+/* Post 메서드 데코레이터 */
 export const Post = createMappingDecorator(RequestMethod.POST);
+
+/* Put 메서드 데코레이터 */
 export const Put = createMappingDecorator(RequestMethod.PUT);
+
+/* Delete 메서드 데코레이터 */
 export const Delete = createMappingDecorator(RequestMethod.DELETE);
+
+/* Patch 메서드 데코레이터 */
 export const Patch = createMappingDecorator(RequestMethod.PATCH);
+
 
 
