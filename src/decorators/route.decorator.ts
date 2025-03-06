@@ -23,7 +23,7 @@ function createMappingDecorator(method: RequestMethod) {
             target: any,
             key: string | Symbol,
             descriptor: PropertyDescriptor
-        ) => {
+        ): PropertyDescriptor => {
             Reflect.defineMetadata(METADATA_KEY.METHOD, method, descriptor.value);
             Reflect.defineMetadata(METADATA_KEY.ROUTE, path, descriptor.value);
             return descriptor;

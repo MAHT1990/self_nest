@@ -71,4 +71,7 @@ export interface HttpAdapter {
 
     /* PATCH 요청 처리 */
     patch(path: string, handler: Function): void;
+    
+    /* 동적 메서드 접근을 위한 인덱스 시그니처 */
+    [key: string]: any;
 }

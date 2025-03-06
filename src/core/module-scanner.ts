@@ -14,6 +14,10 @@ import { METADATA_KEY } from "../constants/shared.constants";
  * container 에 등록합니다.
  * - 모듈 스캐닝은 주어진 module의 metadata를 확인하고,
  * - 해당 module과 module의 imports 모듈을 재귀적으로 스캐닝하여 container에 등록합니다.
+ * 
+ * @example
+ * const moduleScanner = new ModuleScanner(container);
+ * moduleScanner.scan(entryModule);
  */
 export class ModuleScanner {
     constructor(private container: Container) {}
