@@ -36,10 +36,10 @@ self_nest/
 ## 애플리케이션 생성 흐름
 ```mermaid
 flowchart TD
-    Main["main.ts\n(bootstrap)"] --> NF["NestFactory.create()"]
+    Main["main.ts<br>(bootstrap)"] --> NF["NestFactory.create()"]
     NF --> Container["Container 생성"]
-    NF --> MS["ModuleScanner.scan()"]
-    NF --> Injector["Injector.createInstances()"]
+    NF --> MS["모듈 스캔<br>ModuleScanner.scan()"]
+    NF --> Injector["의존성 주입<br>Injector.createInstances()"]
     NF --> App["Application 생성"]
     App --> RegisterRoutes["라우트 등록"]
     App --> Listen["서버 시작"]
@@ -69,9 +69,9 @@ flowchart TD
 ```mermaid
 flowchart TD
     Module["@Module()"] --> |메타데이터 저장| ModuleMeta["MODULE 메타데이터"]
-    Controller["@Controller()"] --> |메타데이터 저장| ControllerMeta["CONTROLLER 메타데이터"]
-    Injectable["@Injectable()"] --> |메타데이터 저장| InjectableMeta["INJECTABLE 메타데이터"]
-    Route["@Get(), @Post()..."] --> |메타데이터 저장| RouteMeta["ROUTE & METHOD 메타데이터"]
+    Controller["@Controller()"] --> |메타데이터 저장| ControllerMeta["CONTROLLER <br>메타데이터"]
+    Injectable["@Injectable()"] --> |메타데이터 저장| InjectableMeta["INJECTABLE <br>메타데이터"]
+    Route["@Get(), @Post()..."] --> |메타데이터 저장| RouteMeta["ROUTE & METHOD <br>메타데이터"]
 ```
 
 ## HTTP 처리
