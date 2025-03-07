@@ -21,5 +21,3 @@ export const isFunction = (obj: any): obj is Function => {
 export const rethrow = (error: Error): never => {
     throw error;
 }
-
-

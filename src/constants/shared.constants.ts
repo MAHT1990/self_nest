@@ -7,4 +7,3 @@ export const METADATA_KEY = {
     ROUTE: 'self_nest:route',
     METHOD: 'self_nest:method',
 };
-

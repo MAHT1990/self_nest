@@ -46,6 +46,3 @@ export const Delete = createMappingDecorator(RequestMethod.DELETE);
 
 /* Patch 메서드 데코레이터 */
 export const Patch = createMappingDecorator(RequestMethod.PATCH);
-
-
-
