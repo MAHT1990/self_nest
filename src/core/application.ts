@@ -3,6 +3,7 @@ import { HttpAdapter, ApplicationOptions, Type } from "./interfaces";
 import { Container } from "./container";
 import { ExceptionsZone } from "./exceptions-zone";
 import { METADATA_KEY } from "../constants/shared.constants";
+import { PipeContext } from "./pipes/pipe.context";
 
 
 export class Application {
@@ -31,12 +32,16 @@ export class Application {
 
                         if (routePath !== undefined && httpMethod !== undefined) {
                             const fullPath = `${prefix}${routePath}`;
+                            const paramsMetadata = Reflect.getMetadata(METADATA_KEY.PARAMS, controller.prototype, key) || [];
 
                             /* 예외 처리 래핑 */
                             const wrappedMethod = this.createExceptionZone(instance, key);
 
+                            /* 파이프 래핑 */
+                            const wrappedMethodWithPipes = this.createPipeHandler(instance, key, paramsMetadata);
+
                             /* 라우트 등록 */
-                            this.httpAdapter[httpMethod](fullPath, wrappedMethod);
+                            this.httpAdapter[httpMethod](fullPath, wrappedMethodWithPipes);
                         }
                     }
                 });
@@ -49,7 +54,10 @@ export class Application {
     }
 
     /* 예외 처리 래핑 */
-    private createExceptionZone(receiver: Record<string, any>, prop: string): Function {
+    private createExceptionZone(
+        receiver: Record<string, any>,
+        prop: string
+    ): Function {
         const abortOnError = this.options.abortOnError !== false;
         const autoFlushLogs = this.options.autoFlushLogs !== false;
 
@@ -64,5 +72,55 @@ export class Application {
 
             return result;
         };
+    }
+
+    private createPipeHandler(
+        instance: any,
+        methodName: string,
+        paramsMetadata: any[]
+    ): Function {
+        const pipeContext = PipeContext.getInstance();
+
+        return async (req: any, res: any) => {
+            try {
+                const args = [];
+
+                for (const metadata of paramsMetadata) {
+                    if (metadata) {
+                        const { type, data, pipes, index } = metadata;
+                        let value;
+
+                        /* Type에 따라 값 추출 */
+                        switch (type) {
+                            case "body":
+                                value = req.body;
+                                break;
+                            case "query":
+                                value = req.query[data];
+                                break;
+                            case "param":
+                                value = req.params[data];
+                                break;
+                            default:
+                                value = undefined;
+                        }
+
+                        const argumentMetadata = {
+                            type,
+                            data,
+                            metatype: undefined,
+                        };
+
+                        const transformedValue = await pipeContext.applyPipes(value, pipes || [], argumentMetadata);
+                        args[index] = transformedValue;
+                    }
+                }
+
+                const result = await instance[methodName].apply(instance, args);
+                return result;
+            } catch (error) {
+                throw error;
+            }
+        }
     }
 }

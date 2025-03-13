@@ -7,6 +7,8 @@ import { Injector } from "./injector";
 import { Application } from "./application";
 import { ExceptionsZone } from "./exceptions-zone";
 import { rethrow } from "../utils/shared.utils";
+import { PipeTransform } from "./pipes/pipe.interfaces";
+import { PipeContext } from "./pipes/pipe.context";
 
 
 /**
@@ -37,7 +39,7 @@ export class NestFactoryStatic {
      * @param options 
      * @returns 
      */
-    async create(
+    public async create(
         entryModule: Type<any>,
         options: ApplicationOptions = {}
     ): Promise<Application> {
@@ -74,6 +76,19 @@ export class NestFactoryStatic {
         app.registerRoutes();
 
         return this.createNestInstance(app);
+    }
+
+
+    /**
+     * 전역 파이프 등록
+     * 
+     * @param pipes 
+     */
+    public useGlobalPipes(
+        ...pipes: PipeTransform[]
+    ): void {
+        const pipeContext = PipeContext.getInstance();
+        pipes.forEach(pipe => pipeContext.addGlobalPipe(pipe));
     }
 
 
