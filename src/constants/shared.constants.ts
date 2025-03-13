@@ -6,4 +6,5 @@ export const METADATA_KEY = {
     INJECTABLE: 'self_nest:injectable',
     ROUTE: 'self_nest:route',
     METHOD: 'self_nest:method',
+    PARAMS: 'self_nest:params',
 };
