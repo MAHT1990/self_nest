@@ -1,6 +1,6 @@
 /**
  * PipeTransform 인터페이스
- * 파이프 변환 작업을 정의하는 인터페이스
+ * 모든 파이프는 이 인터페이스를 구현해야 함
  * 
  * @see ArgumentMetadata
  */

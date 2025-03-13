@@ -1,5 +1,4 @@
 import { PipeTransform, ArgumentMetadata } from "./pipe.interfaces";
-import { Type } from "../interfaces";
 
 
 /**
