@@ -12,7 +12,10 @@ self_nest/
 │   │   ├── container.ts        - IoC 컨테이너
 │   │   ├── exceptions-zone.ts  - 예외 처리 영역
 │   │   ├── module-scanner.ts   - 모듈 스캐닝
-│   │   └── injector.ts         - 의존성 주입
+│   │   ├── injector.ts         - 의존성 주입
+│   │   └── pipes/              - 파이프 관련 구현체
+│   │       ├── pipe.md         - 파이프 설계 문서
+│   │       └── ...
 │   ├── decorators/
 │   │   ├── module.decorator.ts - 모듈 데코레이터
 │   │   ├── controller.decorator.ts - 컨트롤러 데코레이터
@@ -90,6 +93,16 @@ flowchart TD
 - 팩토리 패턴
 - 예외 처리
 - 모듈 스캐닝
+
+# 주요 문서
+## 📋 [파이프(Pipe) 구현 가이드](src/core/pipes/pipe.md)
+파이프는 데이터 변환과 유효성 검증을 위한 핵심 기능입니다. 입력 데이터를 필요한 형식으로 변환하거나, 잘못된 데이터를 필터링하는 역할을 합니다.
+
+주요 특징:
+- 요청 데이터 변환 (예: 문자열 → 숫자)
+- 데이터 유효성 검증
+- 컨트롤러 메서드 실행 전 자동 적용
+- 파이프라인 구성으로 체인 처리 가능
 
 
 
