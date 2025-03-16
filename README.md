@@ -35,10 +35,10 @@ self_nest/
 ```
 
 # 주요 문서
-## 📖 [Core 모듈 작동 원리](src/core/core-concepts.md)
+## 📖 [Core 모듈 작동 원리](docs/core-concepts.md)
 Core 모듈의 작동 원리, 흐름도 및 주요 패턴에 대한 설명을 제공합니다.
 
-## 📋 [파이프(Pipe) 구현 가이드](src/core/pipes/pipe.md)
+## 📋 [파이프(Pipe) 구현 가이드](docs/pipe.md)
 파이프는 데이터 변환과 유효성 검증을 위한 핵심 기능입니다. 입력 데이터를 필요한 형식으로 변환하거나, 잘못된 데이터를 필터링하는 역할을 합니다.
 
 주요 특징:
