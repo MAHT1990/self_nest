@@ -35,13 +35,12 @@ flowchart TD
    - 모듈 간의 의존성 관계 구축
 
 4. **의존성 주입**:
-   - DOC: [의존성 주입 흐름](docs/dependency-injection.md)
    - `Injector.createInstances()`를 통해 모듈, 프로바이더, 컨트롤러 인스턴스 생성
    - 생성자 매개변수 분석을 통한 의존성 자동 주입
    - 인스턴스 캐싱으로 싱글톤 패턴 구현
 
 5. **애플리케이션 생성**:
-   - DOC: [애플리케이션 생성 흐름](docs/application.md)
+   - DOC: [애플리케이션 생성 흐름](application.md)
    - HTTP 어댑터(ExpressAdapter) 설정
    - 애플리케이션 컨텍스트 초기화
    - 전역 예외 필터, 파이프, 가드 등 설정
