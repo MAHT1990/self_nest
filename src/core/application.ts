@@ -15,6 +15,12 @@ import {
 import { GuardContext } from './guards/guard.context';
 import { ExecutionContext } from './interfaces/executionContext.interface';
 
+
+/**
+ * Application Class
+ * 
+ * @description 애플리케이션 실행 클래스
+ */
 export class Application {
     constructor(
         private readonly container: Container,
@@ -22,8 +28,10 @@ export class Application {
         private readonly options: ApplicationOptions = {}
     ) {}
 
-    /* Route 등록 */
-    registerRoutes(): void {
+    /**
+     * Route 등록
+     */
+    public registerRoutes(): void {
         const modules = Array.from(this.container.getModules().keys());
 
         modules.forEach(module => {
@@ -65,11 +73,16 @@ export class Application {
         });
     }
 
-    listen(port: number, callback?: () => void): void {
+    /**
+     * 서버 실행
+     */
+    public listen(port: number, callback?: () => void): void {
         this.httpAdapter.listen(port, callback);
     }
 
-    /* 예외 처리 래핑 핵심 로직 - 동기 메서드용 */
+    /**
+     * 예외 처리 래핑 핵심 로직 - 동기 메서드용
+     */
     private createExceptionZone(handler: Function, methodName: string): Function {
         return (req: any, res: any, ...args: any[]) => {
             let result: any;
@@ -105,7 +118,9 @@ export class Application {
         };
     }
 
-    /* 비동기 메서드를 위한 예외 처리 래핑 */
+    /**
+     * 비동기 메서드를 위한 예외 처리 래핑
+     */
     private createAsyncExceptionZone(handler: Function, methodName: string): Function {
         return async (req: any, res: any, ...args: any[]) => {
             try {
@@ -140,8 +155,12 @@ export class Application {
         };
     }
 
-    /* 오류를 HTTP 예외로 변환 */
-    private convertToHttpException(error: any): HttpException {
+    /**
+     * 오류를 HTTP 예외로 변환
+     */
+    private convertToHttpException(
+        error: any
+    ): HttpException {
         if (error instanceof HttpException) {
             return error;
         }
@@ -162,64 +181,123 @@ export class Application {
     }
 
     /**
-     * 예외 처리 및 가드 로직이 적용된 핸들러 생성
+     * 가드와 파이프가 적용된 래핑된 핸들러 생성
      */
-    private createWrappedHandler(instance: any, methodName: string, paramsMetadata: any[]): Function {
-        const guardContext = GuardContext.getInstance();
-        const pipeContext = PipeContext.getInstance();
-        
+    private createWrappedHandler(
+        instance: any,
+        methodName: string,
+        paramsMetadata: any[]
+    ): Function {
         return async (req: any, res: any) => {
             try {
-                // 1. 실행 컨텍스트 생성
-                const context: ExecutionContext = {
-                    getRequest: () => req,
-                    getResponse: () => res,
-                    getClass: () => instance.constructor,
-                    getHandler: () => instance[methodName]
-                };
+                /* 1. 실행 컨텍스트 생성 */
+                const context: ExecutionContext = this.createExecutionContext(instance, methodName, req, res);
                 
-                // 2. 가드 메타데이터 검색
-                const methodGuards = Reflect.getMetadata(METADATA_KEY.GUARD, instance[methodName]) || [];
-                const classGuards = Reflect.getMetadata(METADATA_KEY.GUARD, instance.constructor) || [];
-                const guards = [...classGuards, ...methodGuards];
-                
-                // 3. 가드 적용
-                const canActivate = await guardContext.applyGuards(guards, context);
-                if (!canActivate) {
+                /* 2. 가드 적용 */
+                const canProceed = await this.applyGuards(instance, methodName, context);
+                if (!canProceed) {
                     res.status(403).json({ message: 'Forbidden' });
                     return;
                 }
                 
-                // 4. 파라미터 준비 및 파이프 적용
-                const args = [];
-                for (const metadata of paramsMetadata) {
-                    if (metadata) {
-                        const { type, data, pipes, index } = metadata;
-                        let value;
-                        
-                        switch (type) {
-                            case "body": value = req.body; break;
-                            case "query": value = req.query[data]; break;
-                            case "param": value = req.params[data]; break;
-                            default: value = undefined;
-                        }
-                        
-                        const argumentMetadata = { type, data, metatype: undefined };
-                        const transformedValue = await pipeContext.applyPipes(value, pipes || [], argumentMetadata);
-                        
-                        args[index] = transformedValue;
-                    }
-                }
+                /* 3. 파이프 적용 및 파라미터 변환 */
+                const args = await this.applyPipes(req, paramsMetadata);
                 
-                // 5. 컨트롤러 메서드 실행
+                /* 4. 컨트롤러 메서드(라우트 핸들러) 실행 */
                 return await instance[methodName].apply(instance, args);
+
             } catch (error) {
-                // 에러 처리
+                /* 에러 처리 */
                 res.status(500).json({ 
                     message: (error as any).message || 'Internal Server Error',
                     status: (error as any).status || 500
                 });
             }
         };
+    }
+
+    /**
+     * 실행 컨텍스트 생성
+     */
+    private createExecutionContext(
+        instance: any, 
+        methodName: string,
+        req: any,
+        res: any
+    ): ExecutionContext {
+        return {
+            getRequest: () => req,
+            getResponse: () => res,
+            getClass: () => instance.constructor,
+            getHandler: () => instance[methodName]
+        };
+    }
+
+    /**
+     * 가드 적용 로직
+     */
+    private async applyGuards(
+        instance: any,
+        methodName: string,
+        context: ExecutionContext
+    ): Promise<boolean> {
+        const guardContext = GuardContext.getInstance();
+        
+        /* 가드 메타데이터 검색 */
+        const methodGuards = Reflect.getMetadata(METADATA_KEY.GUARD, instance[methodName]) || [];
+        const classGuards = Reflect.getMetadata(METADATA_KEY.GUARD, instance.constructor) || [];
+        const guards = [...classGuards, ...methodGuards];
+        
+        /* 가드 적용 */
+        return await guardContext.applyGuards(guards, context);
+    }
+
+    /**
+     * 파이프 적용 및 파라미터 변환 로직
+     */
+    private async applyPipes(
+        req: any,
+        paramsMetadata: any[]
+    ): Promise<any[]> {
+        const pipeContext = PipeContext.getInstance();
+        const args: any[] = [];
+        
+        for (const metadata of paramsMetadata) {
+            if (metadata) {
+                const { type, data, pipes, index } = metadata;
+                let value;
+                
+                /* 파라미터 소스에 따른 값 추출 */
+                value = this.extractValueFromRequest(req, type, data);
+                
+                /* 파이프 적용 */
+                const argumentMetadata = { type, data, metatype: undefined };
+                const transformedValue = await pipeContext.applyPipes(
+                    value, 
+                    pipes || [], 
+                    argumentMetadata
+                );
+                
+                args[index] = transformedValue;
+            }
+        }
+        
+        return args;
+    }
+
+    /**
+     * 요청에서 값 추출 로직
+     */
+    private extractValueFromRequest(
+        req: any, 
+        type: string, 
+        data?: string
+    ): any {
+        switch (type) {
+            case "body": return req.body;
+            case "query": return req.query[data as string];
+            case "param": return req.params[data as string];
+            default: return undefined;
+        }
     }
 }
