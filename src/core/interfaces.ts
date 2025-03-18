@@ -50,28 +50,19 @@ export interface ApplicationOptions {
 
 
 /**
- * HTTP Adapter Interface
- * HTTP 어댑터의 인터페이스
+ * 실행 컨텍스트
+ * 핸들러 실행에 필요한 정보를 담음
  */
-export interface HttpAdapter {
-    /* 서버 실행 */
-    listen(port: number, callback?: () => void): void;
+export interface ExecutionContext {
+    /* 현재 요청 정보 */
+    getRequest(): any;
 
-    /* GET 요청 처리 */
-    get(path: string, handler: Function): void;
+    /* 현재 응답 정보 */
+    getResponse(): any;
 
-    /* POST 요청 처리 */
-    post(path: string, handler: Function): void;
+    /* handler class */
+    getClass(): Type<any>;
 
-    /* PUT 요청 처리 */
-    put(path: string, handler: Function): void;
-
-    /* DELETE 요청 처리 */
-    delete(path: string, handler: Function): void;
-
-    /* PATCH 요청 처리 */
-    patch(path: string, handler: Function): void;
-    
-    /* 동적 메서드 접근을 위한 인덱스 시그니처 */
-    [key: string]: any;
+    /* handler method */
+    getHandler(): Function;
 }

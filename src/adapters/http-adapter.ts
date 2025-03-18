@@ -1,7 +1,7 @@
 // HTTP 어댑터
 
 import * as http from "http";
-import { HttpAdapter } from "../core/interfaces";
+import { HttpAdapter } from "./http-adapter.interfaces";
 
 
 /**
