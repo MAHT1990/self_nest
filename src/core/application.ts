@@ -1,8 +1,7 @@
 // 애플리케이션 클래스 
+import { Container } from "./container";
 import { HttpAdapter } from "../adapters/http-adapter.interfaces";
 import { ApplicationOptions } from "./interfaces/applicationOptions.interface";
-import { Type } from "./interfaces/type.interfaces";
-import { Container } from "./container";
 import { ExceptionsZone } from "./exceptions-zone";
 import { METADATA_KEY } from "../constants/shared.constants";
 import { PipeContext } from "./pipes/pipe.context";
@@ -13,6 +12,8 @@ import {
     InternalServerErrorException,
     ValidationException
 } from "../exceptions/http-exception";
+import { GuardContext } from './guards/guard.context';
+import { ExecutionContext } from './interfaces/executionContext.interface';
 
 export class Application {
     constructor(
@@ -42,16 +43,18 @@ export class Application {
                             const fullPath = `${prefix}${routePath}`;
                             const paramsMetadata = Reflect.getMetadata(METADATA_KEY.PARAMS, controller.prototype, key) || [];
 
-                            /* 파이프 핸들러 생성 */
-                            const pipeHandler = this.createPipeHandler(instance, key, paramsMetadata);
+                            /* 
+                             * 가드, 파이프 적용한 Wrapped Handler 생성
+                             */
+                            const wrappedHandler = this.createWrappedHandler(instance, key, paramsMetadata);
                             
                             /* 메서드가 비동기인지 확인 */
                             const isAsync = instance[key].constructor.name === 'AsyncFunction';
                             
                             /* 예외 처리 래핑 - 동기/비동기에 따라 다른 래퍼 사용 */
                             const handler = isAsync 
-                                ? this.createAsyncExceptionZone(pipeHandler, key)
-                                : this.createExceptionZone(pipeHandler, key);
+                                ? this.createAsyncExceptionZone(wrappedHandler, key)
+                                : this.createExceptionZone(wrappedHandler, key);
 
                             /* 라우트 등록 */
                             this.httpAdapter[httpMethod](fullPath, handler);
@@ -158,50 +161,65 @@ export class Application {
         );
     }
 
-    private createPipeHandler(
-        instance: any,
-        methodName: string,
-        paramsMetadata: any[]
-    ): Function {
+    /**
+     * 예외 처리 및 가드 로직이 적용된 핸들러 생성
+     */
+    private createWrappedHandler(instance: any, methodName: string, paramsMetadata: any[]): Function {
+        const guardContext = GuardContext.getInstance();
         const pipeContext = PipeContext.getInstance();
-
+        
         return async (req: any, res: any) => {
-            const args = [];
-
-            for (const metadata of paramsMetadata) {
-                if (metadata) {
-                    const { type, data, pipes, index } = metadata;
-                    let value;
-
-                    /* Type에 따라 값 추출 */
-                    switch (type) {
-                        case "body":
-                            value = req.body;
-                            break;
-                        case "query":
-                            value = req.query[data];
-                            break;
-                        case "param":
-                            value = req.params[data];
-                            break;
-                        default:
-                            value = undefined;
-                    }
-
-                    const argumentMetadata = {
-                        type,
-                        data,
-                        metatype: undefined,
-                    };
-
-                    /* 파이프 적용하여 값 변환 */
-                    const transformedValue = await pipeContext.applyPipes(value, pipes || [], argumentMetadata);
-                    args[index] = transformedValue;
+            try {
+                // 1. 실행 컨텍스트 생성
+                const context: ExecutionContext = {
+                    getRequest: () => req,
+                    getResponse: () => res,
+                    getClass: () => instance.constructor,
+                    getHandler: () => instance[methodName]
+                };
+                
+                // 2. 가드 메타데이터 검색
+                const methodGuards = Reflect.getMetadata(METADATA_KEY.GUARD, instance[methodName]) || [];
+                const classGuards = Reflect.getMetadata(METADATA_KEY.GUARD, instance.constructor) || [];
+                const guards = [...classGuards, ...methodGuards];
+                
+                // 3. 가드 적용
+                const canActivate = await guardContext.applyGuards(guards, context);
+                if (!canActivate) {
+                    res.status(403).json({ message: 'Forbidden' });
+                    return;
                 }
+                
+                // 4. 파라미터 준비 및 파이프 적용
+                const args = [];
+                for (const metadata of paramsMetadata) {
+                    if (metadata) {
+                        const { type, data, pipes, index } = metadata;
+                        let value;
+                        
+                        switch (type) {
+                            case "body": value = req.body; break;
+                            case "query": value = req.query[data]; break;
+                            case "param": value = req.params[data]; break;
+                            default: value = undefined;
+                        }
+                        
+                        const argumentMetadata = { type, data, metatype: undefined };
+                        const transformedValue = await pipeContext.applyPipes(value, pipes || [], argumentMetadata);
+                        
+                        args[index] = transformedValue;
+                    }
+                }
+                
+                // 5. 컨트롤러 메서드 실행
+                return await instance[methodName].apply(instance, args);
+            } catch (error) {
+                // 에러 처리
+                res.status(500).json({ 
+                    message: (error as any).message || 'Internal Server Error',
+                    status: (error as any).status || 500
+                });
             }
-
-            /* 메서드 호출 및 결과 반환 */
-            return await instance[methodName].apply(instance, args);
-        }
+        };
     }
 }
