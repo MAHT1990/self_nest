@@ -1,5 +1,7 @@
 // NestFactory 구현 
-import { Type, ApplicationOptions, HttpAdapter } from "./interfaces";
+import { Type } from "./interfaces/type.interfaces";
+import { ApplicationOptions } from "./interfaces/applicationOptions.interface";
+import { HttpAdapter } from "../adapters/http-adapter.interfaces";
 import { ExpressAdapter } from "../adapters/http-adapter";
 import { Container } from "./container";
 import { ModuleScanner } from "./module-scanner";

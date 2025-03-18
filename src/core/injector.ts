@@ -1,6 +1,6 @@
 // 의존성 주입 
 import { Container } from "./container";
-import { Type } from "./interfaces";
+import { Type } from "./interfaces/type.interfaces";
 import { METADATA_KEY } from "../constants/shared.constants";
 
 

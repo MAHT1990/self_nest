@@ -1,4 +1,4 @@
-import { ExecutionContext } from "../interfaces";
+import { ExecutionContext } from "../interfaces/executionContext.interface";
 
 
 /**

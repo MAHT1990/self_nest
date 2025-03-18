@@ -1,6 +1,6 @@
 // 모듈 스캐닝 
 import { Container } from "./container";
-import { Type } from "./interfaces";
+import { Type } from "./interfaces/type.interfaces";
 import { METADATA_KEY } from "../constants/shared.constants";
 
 

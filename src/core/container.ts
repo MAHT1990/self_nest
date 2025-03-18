@@ -1,5 +1,5 @@
 // IoC 컨테이너 
-import { Type } from "./interfaces";
+import { Type } from "./interfaces/type.interfaces";
 import { METADATA_KEY } from "../constants/shared.constants";
 
 

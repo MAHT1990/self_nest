@@ -1,5 +1,7 @@
 // 애플리케이션 클래스 
-import { HttpAdapter, ApplicationOptions, Type } from "./interfaces";
+import { HttpAdapter } from "../adapters/http-adapter.interfaces";
+import { ApplicationOptions } from "./interfaces/applicationOptions.interface";
+import { Type } from "./interfaces/type.interfaces";
 import { Container } from "./container";
 import { ExceptionsZone } from "./exceptions-zone";
 import { METADATA_KEY } from "../constants/shared.constants";
