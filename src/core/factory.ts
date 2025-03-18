@@ -11,6 +11,8 @@ import { ExceptionsZone } from "./exceptions-zone";
 import { rethrow } from "../utils/shared.utils";
 import { PipeTransform } from "./pipes/pipe.interfaces";
 import { PipeContext } from "./pipes/pipe.context";
+import { CanActivate } from "./guards/guard.interfaces";
+import { GuardContext } from "./guards/guard.context";
 
 
 /**
@@ -25,6 +27,8 @@ import { PipeContext } from "./pipes/pipe.context";
  * 
  * @method create - 애플리케이션 인스턴스 생성
  * @method createNestInstance - Proxy로 wrap한 인스턴스 반환
+ * @method useGlobalGuards - 전역 가드 등록
+ * @method useGlobalPipes - 전역 파이프 등록
  * @method createProxy - 예외처리를 위한 Proxy 생성
  * @method createExceptionProxy - 예외 처리 Proxy 핸들러 생성
  * @method createExceptionZone - 예외 처리 Zone 생성
@@ -82,6 +86,19 @@ export class NestFactoryStatic {
 
 
     /**
+     * 전역 가드 등록
+     * 
+     * @param guards 
+     */
+    public useGlobalGuards(
+        ...guards: CanActivate[]
+    ): void {
+        const guardContext = GuardContext.getInstance();
+        guards.forEach(guard => guardContext.addGlobalGuard(guard));
+    }
+
+
+    /**
      * 전역 파이프 등록
      * 
      * @param pipes 
@@ -94,7 +111,9 @@ export class NestFactoryStatic {
     }
 
 
-    /** Proxy가 wrap한 인스턴스 반환 
+    /** 
+     * Proxy가 wrap한 인스턴스 반환 
+     * 
      * @see createProxy - Proxy 생성
      * @memberof create - 애플리케이션 인스턴스 생성
     */
@@ -103,7 +122,9 @@ export class NestFactoryStatic {
     }
 
 
-    /** 예외처리를 위한 Proxy 생성 
+    /** 
+     * 예외처리를 위한 Proxy 생성 
+     * 
      * @see createExceptionProxy - 예외 처리 Proxy 핸들러 생성
      * @memberof createNestInstance - Proxy가 wrap한 인스턴스 반환
     */
@@ -116,7 +137,9 @@ export class NestFactoryStatic {
     }
 
 
-    /** 예외 처리 Proxy 핸들러 생성 
+    /** 
+     * 예외 처리 Proxy 핸들러 생성 
+     * 
      * @see createExceptionZone - 예외 처리 Zone 생성
      * @memberof createProxy - 예외 처리 Proxy 핸들러 생성
     */
@@ -133,7 +156,9 @@ export class NestFactoryStatic {
     }
 
 
-    /** 예외 처리 Zone 생성 
+    /** 
+     * 예외 처리 Zone 생성 
+     * 
      * @memberof createExceptionProxy - 예외 처리 Proxy 핸들러 생성
     */
     private createExceptionZone(
