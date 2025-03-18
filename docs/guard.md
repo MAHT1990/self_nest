@@ -118,7 +118,121 @@ findById(@Param("id") id: string) {
   return this.userService.findById(id);
 }
 ```
+```mermaid
+flowchart TD
+    GuardDecorator["@UseGuards(guard)"] --> |저장| Metadata["가드 메타데이터"]
+    Metadata --> |참조| Handler["라우트 핸들러 Wrapper"]
+    Handler --> |생성| Application["Application.createWrappedHandler()"]
+    Application --> |등록| HttpAdapter["HttpAdapter 라우트"]
+```
 
 ## 4. 동작 프로세스
+1. 요청 수신 → 라우트 매핑 → ExecutionContext 생성
+2. 가드 검색 → 전역 가드 적용 → 지역 가드 적용
+3. 가드 통과 시 → 컨트롤러 메서드 실행 → 응답 반환
+4. 가드 거부 시 → 403 Forbidden 오류 응답
+```mermaid
+sequenceDiagram
+    Client->>HttpAdapter: HTTP 요청
+    HttpAdapter->>Application: 라우트 핸들러 호출
+    Application->>GuardContext: 가드 실행 요청
+    GuardContext->>GlobalGuard: canActivate() 호출
+    GlobalGuard-->>GuardContext: true/false 반환
+    
+    alt 전역 가드 통과
+        GuardContext->>LocalGuard: canActivate() 호출
+        LocalGuard-->>GuardContext: true/false 반환
+        
+        alt 지역 가드 통과
+            GuardContext-->>Application: true 반환
+            Application->>Controller: 메서드 실행
+            Controller-->>Application: 결과 반환
+            Application-->>Client: 응답 전송
+        else 지역 가드 거부
+            GuardContext-->>Application: false 반환
+            Application-->>Client: 403 Forbidden
+        end
+    else 전역 가드 거부
+        GuardContext-->>Application: false 반환
+        Application-->>Client: 403 Forbidden
+    end
+```
 
 ## 5. 구현 예시
+### AuthGuard 구현 예시(인증 확인)
+```typescript
+@Injectable()
+export class AuthGuard implements CanActivate {
+  constructor(private readonly jwtService: JwtService) {}
+
+  canActivate(context: ExecutionContext): boolean | Promise<boolean> {
+    const request = context.getRequest();
+    const authHeader = request.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return false;
+    }
+    
+    try {
+      const token = authHeader.split(' ')[1];
+      const decoded = this.jwtService.verify(token);
+      request.user = decoded; // 요청 객체에 사용자 정보 추가
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+}
+```
+### RoleGuard 구현 예시(역할 검사)
+```typescript
+// 역할 데코레이터
+export function Roles(...roles: string[]) {
+  return (target: any, key?: string | symbol, descriptor?: TypedPropertyDescriptor<any>) => {
+    Reflect.defineMetadata('roles', roles, descriptor ? descriptor.value : target);
+    return descriptor ? descriptor : target;
+  };
+}
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const handler = context.getHandler();
+    const requiredRoles = Reflect.getMetadata('roles', handler) || [];
+    
+    if (!requiredRoles.length) {
+      return true; // 역할 요구사항 없음 - 모두 허용
+    }
+    
+    const request = context.getRequest();
+    const user = request.user;
+    
+    if (!user || !user.roles) {
+      return false; // 사용자 또는 역할 정보 없음
+    }
+    
+    return requiredRoles.some(role => user.roles.includes(role));
+  }
+}
+```
+
+### 컨트롤러 예시
+```typescript
+@Controller('products')
+@UseGuards(AuthGuard) // 컨트롤러 수준 인증 가드
+export class ProductsController {
+  constructor(private readonly productsService: ProductsService) {}
+
+  @Get()
+  findAll() {
+    return this.productsService.findAll();
+  }
+
+  @Post()
+  @UseGuards(RolesGuard) // 메서드 수준 역할 가드
+  @Roles('admin') // 필요한 역할 정의
+  create(@Body() createProductDto: CreateProductDto) {
+    return this.productsService.create(createProductDto);
+  }
+}
+```
