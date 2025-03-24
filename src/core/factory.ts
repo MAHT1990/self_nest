@@ -15,7 +15,7 @@ import { CanActivate } from "./guards/guard.interfaces";
 import { GuardContext } from "./guards/guard.context";
 import { ExceptionFilter } from "../exceptions/exception-filters/exception-filter.interfaces";
 import { ExceptionFilterContext } from "../exceptions/exception-filters/exception-filter.context";
-import { BaseExceptionFilter } from "../exceptions/exception-filters/base-exception-filter";
+import { BaseExceptionFilter } from "../exceptions/exception-filters/base-exception-filter.filter";
 
 /**
  * NestFactory 클래스는 애플리케이션을 생성하고 구성하는 역할을 합니다.
