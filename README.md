@@ -26,11 +26,19 @@ self_nest/
 │   │   ├── module.decorator.ts - 모듈 데코레이터
 │   │   ├── controller.decorator.ts - 컨트롤러 데코레이터
 │   │   ├── injectable.decorator.ts - 프로바이더 데코레이터
-│   │   └── route.decorator.ts  - 라우트 데코레이터
+│   │   ├── route.decorator.ts  - 라우트 데코레이터
+│   │   ├── catch.decorator.ts  - 예외 필터 데코레이터
+│   │   └── use-filters.decorator.ts - 필터 적용 데코레이터
 │   ├── adapters/
 │   │   └── http-adapter.ts     - HTTP 어댑터
 │   ├── constants/
 │   │   └── shared.constants.ts - 공통 상수
+│   ├── exceptions/             - 예외 관련 클래스
+│   │   ├── http-exception.ts   - HTTP 예외 클래스
+│   │   └── exception-filters/  - 예외 필터 관련 구현체
+│   │       ├── exception-filter.context.ts - 필터 컨텍스트
+│   │       ├── exception-filter.interfaces.ts - 필터 인터페이스
+│   │       └── base-exception-filter.ts - 기본 예외 필터
 │   └── utils/
 │       └── shared.utils.ts     - 유틸리티 함수
 ├── example/
@@ -61,3 +69,22 @@ Core 모듈의 작동 원리, 흐름도 및 주요 패턴에 대한 설명을 �
 - 인증 및 권한 부여 로직 구현
 - 컨트롤러 또는 메서드 수준 적용 가능
 - 체인으로 구성하여 복잡한 권한 시나리오 구현
+
+## 🔄 [미들웨어(Middleware) 구현 가이드](docs/middleware.md)
+미들웨어는 요청-응답 사이클 내에서 특정 로직을 실행하는 함수입니다. 라우트 핸들러 전에 실행되어 요청 전처리 또는 응답 후처리를 담당합니다.
+
+주요 특징:
+- 요청/응답 객체에 직접 접근 가능
+- 다음 미들웨어 함수 호출 제어
+- 전역, 모듈별, 또는 특정 경로에 적용 가능
+- 로깅, 인증, CORS 등 공통 기능 구현에 적합
+
+## 🚨 [예외 필터(Exception Filter) 구현 가이드](docs/exception-filter.md)
+예외 필터는 애플리케이션에서 발생하는 예외를 처리하고 클라이언트에게 적절한 응답을 반환하는 역할을 합니다. 미처리된 예외를 캐치하여 일관된 오류 응답 형식을 제공합니다.
+
+주요 특징:
+- 애플리케이션 예외의 중앙 집중식 처리
+- 예외 타입별 맞춤형 응답 생성
+- 전역 또는 컨트롤러/메서드 수준 적용 가능
+- HTTP 상태 코드 및 응답 본문 커스터마이징
+- 로깅 및 모니터링과 통합 용이
