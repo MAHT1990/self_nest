@@ -90,12 +90,12 @@ export class MiddlewareContext {
         res: any
     ): Promise<boolean> {
         return new Promise((resolve) => {
-            const middlewars = middlewares.map(m => this.createMiddlewareHandler(m));
+            const middleware = middlewares.map(m => this.createMiddlewareHandler(m));
 
             const next = (index: number) => {
-                if (index >= middlewars.length) return resolve(true);
+                if (index >= middleware.length) return resolve(true);
 
-                const current = middlewars[index];
+                const current = middleware[index];
 
                 try {
                     current(req, res, () => next(index + 1));
