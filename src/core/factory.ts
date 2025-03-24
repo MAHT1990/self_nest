@@ -13,7 +13,9 @@ import { PipeTransform } from "./pipes/pipe.interfaces";
 import { PipeContext } from "./pipes/pipe.context";
 import { CanActivate } from "./guards/guard.interfaces";
 import { GuardContext } from "./guards/guard.context";
-
+import { ExceptionFilter } from "../exceptions/exception-filters/exception-filter.interfaces";
+import { ExceptionFilterContext } from "../exceptions/exception-filters/exception-filter.context";
+import { BaseExceptionFilter } from "../exceptions/exception-filters/base-exception-filter";
 
 /**
  * NestFactory 클래스는 애플리케이션을 생성하고 구성하는 역할을 합니다.
@@ -108,6 +110,24 @@ export class NestFactoryStatic {
     ): void {
         const pipeContext = PipeContext.getInstance();
         pipes.forEach(pipe => pipeContext.addGlobalPipe(pipe));
+    }
+
+    
+    /**
+     * 전역 예외 필터 등록
+     * 
+     * @param filters 
+     */
+    public useGlobalFilters(
+        ...filters: ExceptionFilter[]
+    ): void {
+        const exceptionFilterContext = ExceptionFilterContext.getInstance();
+        
+        /* 기본 예외 필터 등록 */
+        exceptionFilterContext.addGlobalFilter(new BaseExceptionFilter());
+
+        /* 사용자 정의 예외 필터 등록 */
+        filters.forEach(filter => exceptionFilterContext.addGlobalFilter(filter));
     }
 
 

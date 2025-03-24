@@ -1,6 +1,13 @@
 /**
  * 실행 컨텍스트 호스트 인터페이스
- * HTTP, RPC, WS 등 다양한 프로토콜에서 사용
+ * - 실행 컨텍스트의 추상화: HTTP, RPC, WS 등 일관된 방식으로 요청 관련 객체에 접근 가능
+ * - 컨텍스트간 전환: 다양한 유형의 어플리케이션에서 동일한 exception-filter, guard, pipe 등 재사용 가능
+ * - 실행 컨텍스트 정보 제공: guard, filter, pipe 등 필요한 요청/응답 객체 및 컨텍스트 정보 제공
+ *
+ * @method getType(): 실행 컨텍스트 유형
+ * @method getArgs(): 원본 인자 배열
+ * @method getArgByIndex(): 인덱스에 해당하는 인자 반환
+ * @method switchToHttp(): HTTP 컨텍스트로 변환
  */
 export interface ArgumentsHost {
     /**

@@ -32,6 +32,9 @@ export class ExceptionFilterContext {
 
     /**
      * 지정된 예외에 맞는 filter 검색
+     * 
+     * @see getExceptionTypesFromFilter - 필터에서 처리할 수 있는 예외 타입 추출
+     * @see canHandleException - 필터가 예외를 처리할 수 있는지 확인
      */
     public getFilterForException(
         exception: any,
@@ -50,6 +53,9 @@ export class ExceptionFilterContext {
 
     /**
      * 예외 필터에서 처리할 수 있는 예외 타입 추출
+     * - @Catch 데코레이터에서 지정한 예외 타입 추출
+     * 
+     * @memberof getFilterForException
      */
     private getExceptionTypesFromFilter(
         filter: ExceptionFilter
@@ -59,7 +65,9 @@ export class ExceptionFilterContext {
     }
 
     /**
-     * 필터가 특정 에외를 처리할 수 있는지 확인
+     * 필터가 특정 예외를 처리할 수 있는지 확인
+     * 
+     * @memberof getFilterForException
      */
     private canHandleException(
         types: Type<any>[],
@@ -77,6 +85,15 @@ export class ExceptionFilterContext {
     
     /**
      * 예외 처리를 위한 Handler 생성
+     * 
+     * @param instance - 예외 처리 대상 인스턴스
+     * @param methodName - 예외 처리 대상 메서드 이름
+     * 
+     * @return 예외 처리 Handler
+     * 
+     * @see getMethodFilters - 메서드 레벨 필터 조회
+     * @see getClassFilters - 클래스 레벨 필터 조회
+     * @see getFilterForException - 예외 처리 가능 필터 검색
      */
     public createExceptionHandler(
         instance: object,
@@ -106,6 +123,9 @@ export class ExceptionFilterContext {
 
     /**
      * 메서드 레벨 필터 조회
+     * 
+     * @memberof createExceptionHandler
+     * @see createFilterInstances - 필터 인스턴스 생성
      */
     private getMethodFilters(
         instance: object,
@@ -120,6 +140,9 @@ export class ExceptionFilterContext {
 
     /**
      * Class Level Filter 조회
+     * 
+     * @memberof createExceptionHandler
+     * @see createFilterInstances - 필터 인스턴스 생성
      */
     private getClassFilters(
         target: object
@@ -132,6 +155,9 @@ export class ExceptionFilterContext {
 
     /**
      * 필터 인스턴스 생성
+     * 
+     * @memberof getClassFilters
+     * @memberof getMethodFilters
      */
     private createFilterInstances(
         filters: Array<ExceptionFilterClass | ExceptionFilter>

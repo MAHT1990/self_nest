@@ -15,6 +15,8 @@ import {
 import { GuardContext } from './guards/guard.context';
 import { ExecutionContext } from './interfaces/executionContext.interface';
 import { MiddlewareContext } from './middlewares/middleware.context';
+import { ExceptionFilterContext } from '../exceptions/exception-filters/exception-filter.context';
+import { ArgumentsHost } from './interfaces/arguments-host.interface';
 
 
 /**
@@ -24,6 +26,7 @@ import { MiddlewareContext } from './middlewares/middleware.context';
  */
 export class Application {
     private middlewareContext: MiddlewareContext;
+    private exceptionFilterContext: ExceptionFilterContext;
 
     constructor(
         private readonly container: Container,
@@ -32,6 +35,8 @@ export class Application {
     ) {
         // 미들웨어 컨텍스트 초기화
         this.middlewareContext = MiddlewareContext.getInstance();
+        // Exception Filter 컨텍스트 초기화
+        this.exceptionFilterContext = ExceptionFilterContext.getInstance();
     }
 
     /**
@@ -245,6 +250,27 @@ export class Application {
                 console.error(`Error in ${methodName}:`, error);
                 
                 if (!res.headersSent) {
+                    // ArgumentsHost 객체 생성
+                    const host: ArgumentsHost = this.createArgumentsHost(req, res);
+                    
+                    // Exception Filter 처리 시도
+                    try {
+                        // 컨트롤러 인스턴스와 메서드 이름으로 핸들러 생성
+                        const instance = this.findControllerInstance(req.originalUrl);
+                        if (instance) {
+                            const exceptionHandler = this.exceptionFilterContext.createExceptionHandler(
+                                instance, 
+                                methodName
+                            );
+                            exceptionHandler(error, host);
+                            return; // 필터가 처리했으면 기본 예외 처리 생략
+                        }
+                    } catch (filterError) {
+                        // 필터 적용 실패 시 기본 예외 처리로 대체
+                        console.error('Exception filter 처리 실패:', filterError);
+                    }
+                    
+                    // 기존 예외 처리 로직 실행 (필터가 처리하지 못한 경우)
                     const exception = this.convertToHttpException(error);
                     const status = exception.getStatus();
                     const response = exception.getResponse();
@@ -279,6 +305,27 @@ export class Application {
                 console.error(`Error in async ${methodName}:`, error);
                 
                 if (!res.headersSent) {
+                    // ArgumentsHost 객체 생성
+                    const host: ArgumentsHost = this.createArgumentsHost(req, res);
+                    
+                    // Exception Filter 처리 시도
+                    try {
+                        // 컨트롤러 인스턴스와 메서드 이름으로 핸들러 생성
+                        const instance = this.findControllerInstance(req.originalUrl);
+                        if (instance) {
+                            const exceptionHandler = this.exceptionFilterContext.createExceptionHandler(
+                                instance, 
+                                methodName
+                            );
+                            exceptionHandler(error, host);
+                            return; // 필터가 처리했으면 기본 예외 처리 생략
+                        }
+                    } catch (filterError) {
+                        // 필터 적용 실패 시 기본 예외 처리로 대체
+                        console.error('Exception filter 처리 실패:', filterError);
+                    }
+                    
+                    // 기존 예외 처리 로직 실행 (필터가 처리하지 못한 경우)
                     const exception = this.convertToHttpException(error);
                     const status = exception.getStatus();
                     const response = exception.getResponse();
@@ -298,6 +345,62 @@ export class Application {
                 }
             }
         };
+    }
+
+    /**
+     * ArgumentsHost 객체 생성
+     * 
+     * @param req 요청 객체
+     * @param res 응답 객체
+     * 
+     * @returns ArgumentsHost 객체
+     */
+    private createArgumentsHost(req: any, res: any): ArgumentsHost {
+        return {
+            getType: <T>() => 'http' as T,
+            getArgs: <T>() => [req, res] as T,
+            getArgByIndex: <T>(index: number) => index === 0 ? req : res as T,
+            switchToHttp: () => ({
+                getRequest: () => req,
+                getResponse: () => res,
+                getNext: <T>() => null as T
+            })
+        };
+    }
+
+    /**
+     * 요청 URL을 기반으로 컨트롤러 인스턴스 찾기
+     * @param url 요청 URL
+     */
+    private findControllerInstance(url: string): any {
+        // 모든 모듈의 컨트롤러를 확인
+        const modules = Array.from(this.container.getModules().keys());
+        
+        for (const module of modules) {
+            const controllers = this.container.getControllers(module);
+            
+            for (const controller of controllers) {
+                const instance = this.container.getInstance(controller);
+                const prefix = Reflect.getMetadata(METADATA_KEY.CONTROLLER, controller) || "";
+                
+                // URL이 컨트롤러 프리픽스로 시작하는지 확인
+                if (url.startsWith(prefix)) {
+                    return instance;
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * 전역 예외 필터 등록
+     * @param filters 등록할 예외 필터 목록
+     */
+    public useGlobalFilters(...filters: any[]): void {
+        filters.forEach(filter => {
+            this.exceptionFilterContext.addGlobalFilter(filter);
+        });
     }
 
     /**

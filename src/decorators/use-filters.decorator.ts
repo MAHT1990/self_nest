@@ -4,6 +4,28 @@ import { ExceptionFilter, ExceptionFilterClass } from "../exceptions/exception-f
 /**
  * UseFilters 데코레이터
  * - Controller, Method 레벨에서 예외 필터 적용
+ * 
+ * @param filters - 적용할 예외 필터 클래스 또는 인스턴스
+ * 
+ * @example - Class Decorator
+ * 
+ * @UseFilters(SomeExceptionFilter)
+ * export class SomeController {
+ *     @Get()
+ *     async someMethod() {
+ *         throw new SomeException();
+ *     }
+ * }
+ * 
+ * @example - Method Decorator
+ * 
+ * export class SomeController {
+ *     @Get()
+ *     @UseFilters(SomeExceptionFilter, AnotherExceptionFilter)
+ *     async someMethod() {
+ *         throw new SomeException();
+ *     }
+ * }
  */
 export function UseFilters(
     ...filters: (ExceptionFilterClass | ExceptionFilter<any>)[]
