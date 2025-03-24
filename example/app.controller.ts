@@ -1,13 +1,15 @@
-// 예제 컨트롤러 
 import { Controller } from "../src/decorators/controller.decorator";
+import { UseFilters } from "../src/decorators/use-filters.decorator";
 import { Body, Param } from "../src/decorators/param.decorator";
 import { Get, Post } from "../src/decorators/route.decorator";
 import { AppService } from "./app.service";
 import { ParseIntPipe } from "../src/core/pipes/parse-int.pipe";
 import { ValidationPipe } from "../src/core/pipes/validation.pipe";
+import { LoggingExceptionFilter } from "../src/exceptions/exception-filters/logging-exception.filter";
 
 
 @Controller()
+@UseFilters(LoggingExceptionFilter)
 export class AppController {
     constructor(
         private readonly appService: AppService

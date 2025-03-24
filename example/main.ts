@@ -3,6 +3,7 @@ import "reflect-metadata";
 import { NestFactory } from "../src/core/factory";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "../src/core/pipes/validation.pipe";
+import { BaseExceptionFilter } from "../src/exceptions/exception-filters/base-exception-filter.filter";
 
 
 async function bootstrap() {
@@ -13,7 +14,14 @@ async function bootstrap() {
     });
 
     /* Global Pipe 설정 */
-    NestFactory.useGlobalPipes(new ValidationPipe({ optional: true }));
+    NestFactory.useGlobalPipes(
+        new ValidationPipe({ optional: true })
+    );
+
+    /* Global Filter 설정 */
+    NestFactory.useGlobalFilters(
+        new BaseExceptionFilter(),
+    );
 
     /* 서버 실행 */
     app.listen(3000, () => {
