@@ -9,7 +9,9 @@ import { ValidationPipe } from "../src/core/pipes/validation.pipe";
 
 @Controller()
 export class AppController {
-    constructor(private readonly appService: AppService) {}
+    constructor(
+        private readonly appService: AppService
+    ) {}
 
     @Get("/")
     getHello() {

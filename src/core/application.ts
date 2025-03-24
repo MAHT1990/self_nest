@@ -14,6 +14,7 @@ import {
 } from "../exceptions/http-exception";
 import { GuardContext } from './guards/guard.context';
 import { ExecutionContext } from './interfaces/executionContext.interface';
+import { MiddlewareContext } from './middlewares/middleware.context';
 
 
 /**
@@ -22,11 +23,16 @@ import { ExecutionContext } from './interfaces/executionContext.interface';
  * @description 애플리케이션 실행 클래스
  */
 export class Application {
+    private middlewareContext: MiddlewareContext;
+
     constructor(
         private readonly container: Container,
         private readonly httpAdapter: HttpAdapter,
         private readonly options: ApplicationOptions = {}
-    ) {}
+    ) {
+        // 미들웨어 컨텍스트 초기화
+        this.middlewareContext = MiddlewareContext.getInstance();
+    }
 
     /**
      * Route 등록
@@ -52,9 +58,9 @@ export class Application {
                             const paramsMetadata = Reflect.getMetadata(METADATA_KEY.PARAMS, controller.prototype, key) || [];
 
                             /* 
-                             * 가드, 파이프 적용한 Wrapped Handler 생성
+                             * 미들웨어, 가드, 파이프 적용한 Wrapped Handler 생성
                              */
-                            const wrappedHandler = this.createWrappedHandler(instance, key, paramsMetadata);
+                            const wrappedHandler = this.createWrappedHandler(instance, key, paramsMetadata, fullPath, httpMethod);
                             
                             /* 메서드가 비동기인지 확인 */
                             const isAsync = instance[key].constructor.name === 'AsyncFunction';
@@ -78,6 +84,150 @@ export class Application {
      */
     public listen(port: number, callback?: () => void): void {
         this.httpAdapter.listen(port, callback);
+    }
+
+    /**
+     * 미들웨어, 가드, 파이프가 모두 적용된 핸들러 생성
+     */
+    private createWrappedHandler(
+        instance: any, 
+        methodName: string, 
+        paramsMetadata: any[], 
+        fullPath: string, 
+        httpMethod: string
+    ): Function {
+        return async (req: any, res: any, ...args: any[]) => {
+            try {
+
+                console.log(`Request: ${req}`);
+                console.log(`Response: ${res}`);
+                // 1. 미들웨어 적용
+                const middlewareResult = await this.applyMiddlewares(req, res, fullPath, httpMethod);
+
+                // 미들웨어에서 응답이 이미 전송되었으면 더 이상 진행하지 않음
+                if (!middlewareResult || (res && res.headersSent)) {
+                    return;
+                }
+
+                // 2. 가드 적용
+                const guardResult = await this.applyGuards(instance, methodName, req, res);
+
+                // 가드에서 거부된 경우 더 이상 진행하지 않음
+                if (!guardResult || (res && res.headersSent)) {
+                    return;
+                }
+
+                // 3. 파이프 적용 및 파라미터 처리 후 핸들러 호출
+                return await this.applyPipes(instance, methodName, paramsMetadata, req, res, ...args);
+
+            } catch (error) {
+                // 미처리 예외는 최상위 예외 처리기에서 처리됨
+                throw error;
+            }
+        };
+    }
+
+    /**
+     * 미들웨어 적용 - 경로에 맞는 미들웨어 실행
+     */
+    private async applyMiddlewares(
+        req: any, 
+        res: any, 
+        fullPath: string, 
+        httpMethod: string
+    ): Promise<boolean> {
+        try {
+            // 경로에 맞는 미들웨어 가져오기
+            const middlewares = this.middlewareContext.getMiddlewaresForRoute(fullPath, httpMethod);
+            
+            // 미들웨어가 없는 경우 계속 진행
+            if (!middlewares || middlewares.length === 0) {
+                return true;
+            }
+            
+            // 미들웨어 체인 실행
+            return await this.middlewareContext.applyMiddlewares(middlewares, req, res);
+        } catch (error) {
+            console.error('미들웨어 적용 중 오류 발생:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 가드 적용 - 실행 컨텍스트 생성 후 가드 실행
+     */
+    private async applyGuards(
+        instance: any, 
+        methodName: string, 
+        req: any, 
+        res: any
+    ): Promise<boolean> {
+        // 실행 컨텍스트 생성
+        const context: ExecutionContext = {
+            getRequest: () => req,
+            getResponse: () => res,
+            getClass: () => instance.constructor,
+            getHandler: () => instance[methodName]
+        };
+
+        // 메서드에 적용된 가드 가져오기
+        const guards = Reflect.getMetadata(METADATA_KEY.GUARD, instance[methodName]) || [];
+        
+        // 가드 컨텍스트에서 가드 실행
+        const guardContext = GuardContext.getInstance();
+        return await guardContext.applyGuards(guards, context);
+    }
+
+    /**
+     * 파이프 적용 및 파라미터 처리
+     */
+    private async applyPipes(
+        instance: any, 
+        methodName: string, 
+        paramsMetadata: any[], 
+        req: any, 
+        res: any, 
+        ...args: any[]
+    ): Promise<any> {
+        const pipeContext = PipeContext.getInstance();
+        const params = [];
+
+        // 파라미터 메타데이터를 기반으로 파라미터 추출 및 파이프 적용
+        for (const { index, type, data, pipes } of paramsMetadata) {
+            let value;
+
+            // 파라미터 타입에 따라 값 추출
+            switch (type) {
+                case 'body':
+                    value = data ? req.body?.[data] : req.body;
+                    break;
+                case 'param':
+                    value = data ? req.params?.[data] : req.params;
+                    break;
+                case 'query':
+                    value = data ? req.query?.[data] : req.query;
+                    break;
+                case 'req':
+                    value = req;
+                    break;
+                case 'res':
+                    value = res;
+                    break;
+                default:
+                    value = undefined;
+            }
+
+            // 파이프 적용
+            if (pipes && pipes.length > 0) {
+                const metadata = { type, data, target: instance.constructor, method: methodName };
+                value = await pipeContext.applyPipes(value, pipes, metadata);
+            }
+
+            params[index] = value;
+        }
+
+        // 컨트롤러 메서드 호출
+        return instance[methodName](...params);
     }
 
     /**
@@ -124,180 +274,48 @@ export class Application {
     private createAsyncExceptionZone(handler: Function, methodName: string): Function {
         return async (req: any, res: any, ...args: any[]) => {
             try {
-                return await ExceptionsZone.asyncRun(
-                    async () => await handler(req, res, ...args),
-                    (error: any) => {
-                        console.error(`Async error in ${methodName}:`, error);
-                        
-                        if (!res.headersSent) {
-                            const exception = this.convertToHttpException(error);
-                            const status = exception.getStatus();
-                            const response = exception.getResponse();
-                            
-                            res.statusCode = status;
-                            res.setHeader('Content-Type', 'application/json');
-                            res.end(JSON.stringify({
-                                statusCode: status,
-                                message: typeof response === 'object' ? response.message : response,
-                                timestamp: new Date().toISOString()
-                            }));
-                        }
-                    },
-                    this.options.autoFlushLogs !== false
-                );
+                return await handler(req, res, ...args);
             } catch (error) {
-                // 최종 에러 처리 및 응답 변환
+                console.error(`Error in async ${methodName}:`, error);
+                
+                if (!res.headersSent) {
+                    const exception = this.convertToHttpException(error);
+                    const status = exception.getStatus();
+                    const response = exception.getResponse();
+                    
+                    res.statusCode = status;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({
+                        statusCode: status,
+                        message: typeof response === 'object' ? response.message : response,
+                        timestamp: new Date().toISOString()
+                    }));
+                }
+                
+                // 디버깅 목적으로 오류 다시 던지기 (옵션에 따라)
                 if (this.options.abortOnError !== false) {
                     throw error;
                 }
-                return null;
             }
         };
     }
 
     /**
-     * 오류를 HTTP 예외로 변환
+     * 일반 오류를 HttpException으로 변환
      */
-    private convertToHttpException(
-        error: any
-    ): HttpException {
+    private convertToHttpException(error: any): HttpException {
         if (error instanceof HttpException) {
             return error;
-        }
-        
-        // 다양한 오류 유형에 따른 적절한 HTTP 예외 반환
-        if (error instanceof TypeError) {
-            return new BadRequestException(error.message);
         }
         
         if (error instanceof ValidationException) {
             return new UnprocessableEntityException(error.message);
         }
         
-        // 기본값은 500 내부 서버 오류
-        return new InternalServerErrorException(
-            error.message || '내부 서버 오류가 발생했습니다'
-        );
-    }
-
-    /**
-     * 가드와 파이프가 적용된 래핑된 핸들러 생성
-     */
-    private createWrappedHandler(
-        instance: any,
-        methodName: string,
-        paramsMetadata: any[]
-    ): Function {
-        return async (req: any, res: any) => {
-            try {
-                /* 1. 실행 컨텍스트 생성 */
-                const context: ExecutionContext = this.createExecutionContext(instance, methodName, req, res);
-                
-                /* 2. 가드 적용 */
-                const canProceed = await this.applyGuards(instance, methodName, context);
-                if (!canProceed) {
-                    res.status(403).json({ message: 'Forbidden' });
-                    return;
-                }
-                
-                /* 3. 파이프 적용 및 파라미터 변환 */
-                const args = await this.applyPipes(req, paramsMetadata);
-                
-                /* 4. 컨트롤러 메서드(라우트 핸들러) 실행 */
-                return await instance[methodName].apply(instance, args);
-
-            } catch (error) {
-                /* 에러 처리 */
-                res.status(500).json({ 
-                    message: (error as any).message || 'Internal Server Error',
-                    status: (error as any).status || 500
-                });
-            }
-        };
-    }
-
-    /**
-     * 실행 컨텍스트 생성
-     */
-    private createExecutionContext(
-        instance: any, 
-        methodName: string,
-        req: any,
-        res: any
-    ): ExecutionContext {
-        return {
-            getRequest: () => req,
-            getResponse: () => res,
-            getClass: () => instance.constructor,
-            getHandler: () => instance[methodName]
-        };
-    }
-
-    /**
-     * 가드 적용 로직
-     */
-    private async applyGuards(
-        instance: any,
-        methodName: string,
-        context: ExecutionContext
-    ): Promise<boolean> {
-        const guardContext = GuardContext.getInstance();
-        
-        /* 가드 메타데이터 검색 */
-        const methodGuards = Reflect.getMetadata(METADATA_KEY.GUARD, instance[methodName]) || [];
-        const classGuards = Reflect.getMetadata(METADATA_KEY.GUARD, instance.constructor) || [];
-        const guards = [...classGuards, ...methodGuards];
-        
-        /* 가드 적용 */
-        return await guardContext.applyGuards(guards, context);
-    }
-
-    /**
-     * 파이프 적용 및 파라미터 변환 로직
-     */
-    private async applyPipes(
-        req: any,
-        paramsMetadata: any[]
-    ): Promise<any[]> {
-        const pipeContext = PipeContext.getInstance();
-        const args: any[] = [];
-        
-        for (const metadata of paramsMetadata) {
-            if (metadata) {
-                const { type, data, pipes, index } = metadata;
-                let value;
-                
-                /* 파라미터 소스에 따른 값 추출 */
-                value = this.extractValueFromRequest(req, type, data);
-                
-                /* 파이프 적용 */
-                const argumentMetadata = { type, data, metatype: undefined };
-                const transformedValue = await pipeContext.applyPipes(
-                    value, 
-                    pipes || [], 
-                    argumentMetadata
-                );
-                
-                args[index] = transformedValue;
-            }
+        if (error instanceof SyntaxError || error instanceof TypeError) {
+            return new BadRequestException(error.message);
         }
         
-        return args;
-    }
-
-    /**
-     * 요청에서 값 추출 로직
-     */
-    private extractValueFromRequest(
-        req: any, 
-        type: string, 
-        data?: string
-    ): any {
-        switch (type) {
-            case "body": return req.body;
-            case "query": return req.query[data as string];
-            case "param": return req.params[data as string];
-            default: return undefined;
-        }
+        return new InternalServerErrorException(error.message || 'Internal server error');
     }
 }
