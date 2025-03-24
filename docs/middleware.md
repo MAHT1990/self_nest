@@ -117,7 +117,7 @@ middlewareContext.addGlobalMiddleware(new AuthMiddleware());
 ### 📌 지역 미들웨어 등록
 - `@UseMiddleware()` 데코레이터를 사용하여 컨트롤러 메서드에 미들웨어 적용
 
-## 4. 동작 프로세스
+## 3. 동작 프로세스
 
 ```mermaid
 flowchart TD
@@ -134,7 +134,7 @@ flowchart TD
     Middlewares --> |forRoutes| Routes["라우트 지정"]
 ```
 
-## 5. 구현 예시
+## 4. 구현 예시
 ### AuthMiddleware 구현 예시(인증 확인)
 ```typescript
 @Injectable()
