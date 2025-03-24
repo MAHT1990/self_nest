@@ -41,7 +41,7 @@ flowchart TD
         D3 --> D4[라우트 등록 단계에서 예외 처리 래핑]
     end
 
-    subgraph "3. 런타임 예외 처리"
+    subgraph "3.런타임 예외 처리"
         E1[예외 발생] --> E2[ExceptionZone에서 캐치]
         E2 --> E3["createExceptionHandler 호출"]
         E3 --> E4["필터 목록 수집"]
